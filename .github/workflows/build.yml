@@ -26,13 +26,49 @@ jobs:
     strategy:
       matrix:
         include:
-          - name: linux
+          - name: linux-riscv64-cross
+            runtime_os: linux
+            runtime_arch: riscv64
             libc: glibc
             docker_tag: azurelinux-3.0-net10.0-cross-riscv64
-          - name: linux-musl
+            cross_name: riscv64
+          - name: linux-riscv64-musl-cross
+            runtime_os: linux-musl
+            runtime_arch: riscv64
             libc: musl
             docker_tag: azurelinux-3.0-net10.0-cross-riscv64-musl
-    runs-on: ubuntu-latest
+            cross_name: riscv64
+          - name: linux-loong64-cross
+            runtime_os: linux
+            runtime_arch: loongarch64
+            libc: glibc
+            docker_tag: azurelinux-3.0-net10.0-cross-loongarch64
+            cross_name: loongarch64
+          - name: linux-loong64-musl-cross
+            runtime_os: linux-musl
+            runtime_arch: loongarch64
+            libc: musl
+            docker_tag: azurelinux-3.0-net10.0-cross-loongarch64-musl
+            cross_name: loongarch64
+          - name: linux-x64-alma8
+            runtime_os: linux
+            runtime_arch: x64
+            libc: glibc
+            docker_tag: almalinux-8-source-build-amd64
+            cross_name: /
+          - name: linux-x64-alma9
+            runtime_os: linux
+            runtime_arch: x64
+            libc: glibc
+            docker_tag: almalinux-9-source-build-amd64
+            cross_name: /
+          - name: linux-x64-alma10
+            runtime_os: linux
+            runtime_arch: x64
+            libc: glibc
+            docker_tag: almalinux-10-source-build-amd64
+            cross_name: /
+    runs-on: ubuntu-24.04
     permissions:
       contents: write
     steps:
@@ -51,16 +87,21 @@ jobs:
 
     - name: Apply patches
       run: |
-        # needed for .NET 10 linux-musl-riscv64, remove it once we move on from .NET 10
+        # Back-ported.
+        # Needed for .NET 10 linux-musl-riscv64, remove it once we move on from .NET 10
         curl -sSL https://github.com/am11/runtime/commit/fa6e00abe9be4a451d81a29309c933435db8fe40.patch |\
           git -C dotnet/ apply -v --directory=src/runtime || true
 
     - name: Build
       run: |
-        docker run --platform linux/amd64 --rm -v${{ github.workspace }}/dotnet:/dotnet -w /dotnet -e ROOTFS_DIR=/crossrootfs/riscv64 \
+        export COMPILE_ROOTFS_DIR=' '
+        if [[ ${{ matrix.cross_name }} != '/' ]]; then
+          export COMPILE_ROOTFS_DIR="-e ROOTFS_DIR=/crossrootfs/${{ matrix.cross_name }}"
+        fi
+        docker run --platform linux/amd64 --rm -v${{ github.workspace }}/dotnet:/dotnet -w /dotnet $COMPILE_ROOTFS_DIR \
           mcr.microsoft.com/dotnet-buildtools/prereqs:${{ matrix.docker_tag }} \
-            ./build.sh --clean-while-building --prep -sb --os ${{ matrix.name }} --rid ${{ matrix.name }}-riscv64 \
-              --arch riscv64 ${{ inputs.is_rtm && '--branding rtm' || '' }} -p:OfficialBuildId=$(date +%Y%m%d).99
+            ./build.sh --clean-while-building --prep -sb --os ${{ matrix.runtime_os }} --rid ${{ matrix.runtime_os }}-${{ matrix.runtime_arch }} \
+              --arch ${{ matrix.runtime_arch }} ${{ inputs.is_rtm && '--branding rtm' || '' }}
 
     - name: List assets directory
       run: |
@@ -71,7 +112,8 @@ jobs:
       with:
         name: dotnet-sdk-${{ matrix.name }}
         path: |
-          ${{ github.workspace }}/dotnet/artifacts/assets/Release/Sdk/*/dotnet-sdk-*.tar.gz
+          ${{ github.workspace }}/dotnet/artifacts/assets/Release/dotnet-sdk-*.tar.gz
+          ${{ github.workspace }}/dotnet/artifacts/assets/Release/Private.SourceBuilt.Artifacts.*.tar.gz
 
   release:
     needs: build
