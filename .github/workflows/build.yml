@@ -38,35 +38,11 @@ jobs:
             libc: musl
             docker_tag: azurelinux-3.0-net10.0-cross-riscv64-musl
             cross_name: riscv64
-          - name: linux-loong64-cross
-            runtime_os: linux
-            runtime_arch: loongarch64
-            libc: glibc
-            docker_tag: azurelinux-3.0-net10.0-cross-loongarch64
-            cross_name: loongarch64
-          - name: linux-loong64-musl-cross
-            runtime_os: linux-musl
-            runtime_arch: loongarch64
-            libc: musl
-            docker_tag: azurelinux-3.0-net10.0-cross-loongarch64-musl
-            cross_name: loongarch64
           - name: linux-x64-alma8
             runtime_os: linux
             runtime_arch: x64
             libc: glibc
             docker_tag: almalinux-8-source-build-amd64
-            cross_name: /
-          - name: linux-x64-alma9
-            runtime_os: linux
-            runtime_arch: x64
-            libc: glibc
-            docker_tag: almalinux-9-source-build-amd64
-            cross_name: /
-          - name: linux-x64-alma10
-            runtime_os: linux
-            runtime_arch: x64
-            libc: glibc
-            docker_tag: almalinux-10-source-build-amd64
             cross_name: /
     runs-on: ubuntu-24.04
     permissions:
