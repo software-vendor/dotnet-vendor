@@ -111,14 +111,20 @@ jobs:
         git clone https://${{ secrets.CLONE_TOKEN }}:x-oauth-basic@github.com/${{ github.repository }}.git repo
         cd repo
 
-        sdk_paths=$(find ${{ github.workspace }}/artifacts -name 'dotnet-sdk-*.tar.gz')
         artifacts=""
+
+        sdk_paths=$(find ${{ github.workspace }}/artifacts -name 'dotnet-sdk-*.tar.gz')
         for sdk_path in $sdk_paths; do
           sdk_filename=$(basename "$sdk_path")
           # Extract version: strip prefix/suffix to get e.g. "10.0.100-preview.5.25277.114"
           sdk_version=$(echo "$sdk_filename" | sed -E 's/dotnet-sdk-([^-]+(-[^-]+)*)-linux-.+\.tar\.gz/\1/')
           artifacts="$artifacts -a $sdk_path"
           tag_name="$sdk_version"
+        done
+
+        psba_paths=$(find ${{ github.workspace }}/artifacts -name 'Private.SourceBuilt.Artifacts.*.tar.gz')
+        for psba_path in $psba_paths; do
+          artifacts="$artifacts -a $psba_path"
         done
 
         echo "tag_name: $tag_name"
